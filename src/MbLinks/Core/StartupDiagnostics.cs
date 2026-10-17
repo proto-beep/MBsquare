@@ -55,6 +55,7 @@ namespace MusicBeePlugin
             text.AppendLine(ProjectInfo.Name + " " + ProjectInfo.Version + " – error report");
             text.AppendLine("Time: " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture));
             text.AppendLine("Stage: " + stage);
+            try { text.AppendLine("MusicBee: " + System.Windows.Forms.Application.ProductVersion); } catch { }
             text.AppendLine("MusicBee API: interface version " + interfaceVersion + ", API revision " + apiRevision);
             text.AppendLine("Plugin built for: interface version " + Plugin.MinInterfaceVersion + ", API revision " + Plugin.MinApiRevision);
             text.AppendLine(".NET: " + Environment.Version + ", Windows: " + Environment.OSVersion.VersionString +

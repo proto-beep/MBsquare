@@ -7,6 +7,27 @@ The code of all versions was written with Claude, an AI model by Anthropic.
 
 ## [Unreleased]
 
+## [0.12.4] – 2026-10-17
+
+### Added
+
+- `MbLinks\diagnostics.txt`: records which calls MusicBee makes to the plugin (plugin object created, `Initialise`, startup notification, panel, settings, `Close`) and every exception thrown in MusicBee's process during the first 15 minutes after the plugin is loaded or initialised, also inside MusicBee itself, each with the full call stack. This locates errors that happen in MusicBee after the plugin has returned. The file names the MusicBee version and API revision.
+- The error report `startup-error.txt` names the MusicBee version.
+
+### Changed
+
+- `Initialise` only returns the plugin information and prepares the data folder and the log. Settings, services and menu entries are set up when MusicBee sends the startup notification, which it sends to enabled plugins only. Before, a disabled plugin added its menu entries and started its services as well, because MusicBee calls `Initialise` also for disabled plugins; enabling it then started the plugin a second time.
+- Menu entries are added on MusicBee's UI thread. When the plugin is disabled in the preferences, its menu entries are hidden; they are shown again when it is enabled.
+- If starting fails, MusicBee's error dialog shows the plugin's own summary instead of only the innermost error message.
+
+### Fixed
+
+- The check of the selected album in the panel no longer runs before the plugin has started, and errors in it are logged instead of being passed on to MusicBee.
+
+### Known issues
+
+- In 0.12.2 and 0.12.3, "Enable" in MusicBee's plugin preferences failed with "Unable to initialise plugin" (NullReferenceException), although the menu entries worked. The changes above are meant to fix this; if the error remains, `diagnostics.txt` shows where it happens.
+
 ## [0.12.3] – 2026-10-17
 
 ### Added

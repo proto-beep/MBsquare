@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!-- The only place where the version number is maintained (Semantic Versioning). The plugin reads it at runtime. -->
-    <Version>0.12.3</Version>
+    <Version>0.12.4</Version>
 
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>

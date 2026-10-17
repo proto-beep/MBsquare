@@ -80,6 +80,9 @@ namespace MusicBeePlugin
             try { Directory.CreateDirectory(folder); } catch { }
         }
 
+        /// <summary>Shortens or removes the paths in a text according to the setting (used for the diagnostics file).</summary>
+        public static string Clean(string text) => ShortenPaths(text);
+
         public static void Info(string message) => Write("INFO", new[] { message });
 
         /// <summary>Ratings that MusicBrainz accepted.</summary>

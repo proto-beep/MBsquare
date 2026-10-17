@@ -83,6 +83,27 @@ namespace MusicBeePlugin
 
         private PluginSettings Settings => Volatile.Read(ref settings);
 
+        // MusicBee also calls Initialise for disabled plugins (to list them in the preferences) and may create more
+        // than one Plugin object. So Initialise only returns the plugin information; the plugin starts working with
+        // the PluginStartup notification, which MusicBee sends to enabled plugins only.
+        private static int instanceCounter;
+        private readonly int instanceId = Interlocked.Increment(ref instanceCounter);
+        private readonly object startLock = new object();
+        private volatile bool started;
+        private bool startFailed;
+        private bool menusAdded;
+        private ToolStripMenuItem toolsMenuRoot;
+
+        public Plugin()
+        {
+            try
+            {
+                DiagnosticsRecorder.Begin();
+                DiagnosticsRecorder.Note("Plugin object #" + instanceId + " created" + ThreadInfo());
+            }
+            catch { }
+        }
+
         public PluginInfo Initialise(IntPtr apiInterfacePtr)
         {
             string storagePath = null;
@@ -92,14 +113,17 @@ namespace MusicBeePlugin
             }
             catch (Exception ex)
             {
-                // MusicBee shows the message in its error dialog; the full report goes to MbLinks\startup-error.txt
+                // MusicBee shows the message in its error dialog; the full report goes to MbLinks\startup-error.txt.
+                // No inner exception: MusicBee may show only the innermost message, and this one names the location.
                 throw new InvalidOperationException(
-                    StartupDiagnostics.Report("Initialise", ex, storagePath, mbApi.ApiRevision, mbApi.InterfaceVersion), ex);
+                    StartupDiagnostics.Report("Initialise", ex, storagePath, mbApi.ApiRevision, mbApi.InterfaceVersion));
             }
         }
 
+        // Only what MusicBee needs to list the plugin: plugin information, data folder, log and diagnostics.
         private PluginInfo InitialiseCore(IntPtr apiInterfacePtr, ref string storagePath)
         {
+            DiagnosticsRecorder.Begin();
             mbApi = new MusicBeeApiInterface();
             mbApi.Initialise(apiInterfacePtr);
 
@@ -119,31 +143,86 @@ namespace MusicBeePlugin
             about.ConfigurationPanelHeight = 0;             // 0 = own settings window via Configure()
 
             storagePath = mbApi.Setting_GetPersistentStoragePath();
-            AssemblyLoader.Register(storagePath);
-
             dataFolder = Path.Combine(storagePath, "MbLinks");
             Directory.CreateDirectory(dataFolder);
             PluginLog.Init(dataFolder, message => { try { mbApi.MB_Trace(message); } catch { } });
+            PluginLog.PathMode = PluginSettings.Load(dataFolder).LogPaths;
+            DiagnosticsRecorder.SetFolder(dataFolder);
 
-            settings = PluginSettings.Load(dataFolder);
-            PluginLog.PathMode = settings.LogPaths;
-            detectedLanguage = LanguageDetector.Detect(storagePath, CultureInfo.CurrentUICulture);
-
-            shutdownCts = new CancellationTokenSource();
-            library = new MusicBeeLibrary(mbApi);
-            web = new WebService();
-            auth = new MusicBrainzAuth(web, dataFolder);
-            linkCache = new LinkCache(dataFolder);
-            iconStore = new IconStore(web, Path.Combine(dataFolder, "icons"));
-            linkService = new LinkService(web, iconStore, linkCache);
-            ratings = new RatingService(web, auth, library);
-            genreService = new GenreService(web, library);
-            genreSubmitService = new GenreSubmitService(web, auth, library, dataFolder);
-
-            AddMenuItems();
-            PluginLog.Info(ProjectInfo.Name + " " + ProjectInfo.Version + " started (MusicBee API revision " + mbApi.ApiRevision +
-                           ", interface version " + mbApi.InterfaceVersion + ", .NET " + Environment.Version + ").");
+            string text = "Initialise called on plugin object #" + instanceId + ThreadInfo() + ": " +
+                          ProjectInfo.Name + " " + ProjectInfo.Version + "; " + MusicBeeDescription();
+            DiagnosticsRecorder.Note(text);
+            PluginLog.Info(text);
             return about;
+        }
+
+        /// <summary>Creates settings and services once. Called when MusicBee shows that the plugin is enabled.</summary>
+        private bool EnsureStarted(string trigger)
+        {
+            if (started) return true;
+            if (startFailed || string.IsNullOrEmpty(dataFolder)) return false;   // failed before, or Initialise has not run
+
+            lock (startLock)
+            {
+                if (started) return true;
+                try
+                {
+                    string storagePath = Path.GetDirectoryName(dataFolder);
+                    AssemblyLoader.Register(storagePath);
+
+                    PluginSettings loaded = PluginSettings.Load(dataFolder);
+                    PluginLog.PathMode = loaded.LogPaths;
+                    detectedLanguage = LanguageDetector.Detect(storagePath, CultureInfo.CurrentUICulture);
+
+                    shutdownCts = new CancellationTokenSource();
+                    library = new MusicBeeLibrary(mbApi);
+                    web = new WebService();
+                    auth = new MusicBrainzAuth(web, dataFolder);
+                    linkCache = new LinkCache(dataFolder);
+                    iconStore = new IconStore(web, Path.Combine(dataFolder, "icons"));
+                    linkService = new LinkService(web, iconStore, linkCache);
+                    ratings = new RatingService(web, auth, library);
+                    genreService = new GenreService(web, library);
+                    genreSubmitService = new GenreSubmitService(web, auth, library, dataFolder);
+                    Volatile.Write(ref settings, loaded);
+                    started = true;
+                }
+                catch (Exception ex)
+                {
+                    startFailed = true;
+                    ReportError("Start (" + trigger + ")", ex);
+                    return false;
+                }
+            }
+
+            string text = ProjectInfo.Name + " " + ProjectInfo.Version + " started (" + trigger + ", plugin object #" + instanceId +
+                          ThreadInfo() + "; " + MusicBeeDescription() + ").";
+            PluginLog.Info(text);
+            DiagnosticsRecorder.Note(text);
+            return true;
+        }
+
+        private static string ThreadInfo()
+        {
+            try
+            {
+                Thread thread = Thread.CurrentThread;
+                return " (thread " + thread.ManagedThreadId +
+                       (thread.IsBackground ? ", background" : "") +
+                       (thread.GetApartmentState() == ApartmentState.STA ? ", STA" : "") + ")";
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        private string MusicBeeDescription()
+        {
+            string program = "";
+            try { program = "MusicBee " + Application.ProductVersion + " (" + PluginLog.FileRef(Application.ExecutablePath) + "), "; } catch { }
+            return program + "API revision " + mbApi.ApiRevision + ", interface version " + mbApi.InterfaceVersion +
+                   ", .NET " + Environment.Version + ", " + (Environment.Is64BitProcess ? "64" : "32") + "-bit process";
         }
 
         /// <summary>Errors in calls from MusicBee are logged and written to the error report, never passed on to MusicBee.</summary>
@@ -153,6 +232,7 @@ namespace MusicBeePlugin
             {
                 string storage = string.IsNullOrEmpty(dataFolder) ? null : Path.GetDirectoryName(dataFolder);
                 StartupDiagnostics.Report(stage, ex, storage, mbApi.ApiRevision, mbApi.InterfaceVersion);
+                DiagnosticsRecorder.Note("Error in " + stage + ": " + ex.GetType().Name + ": " + ex.Message);
             }
             catch { }
         }
@@ -164,7 +244,8 @@ namespace MusicBeePlugin
         {
             try
             {
-                ShowSettings();
+                DiagnosticsRecorder.Note("Configure called on plugin object #" + instanceId + ThreadInfo());
+                if (EnsureStarted("settings opened")) ShowSettings();
             }
             catch (Exception ex)
             {
@@ -182,16 +263,37 @@ namespace MusicBeePlugin
         {
             try
             {
+                DiagnosticsRecorder.Note("Close(" + reason + ") called on plugin object #" + instanceId + ThreadInfo());
+                if (!started) return;
+
                 shutdownCts?.Cancel();
                 lock (sync)
                 {
                     linksCts?.Cancel();
                     autoUploadTimer?.Dispose();
+                    autoUploadTimer = null;
                     statusTimer?.Dispose();
+                    statusTimer = null;
                 }
                 try { selectionTimer?.Dispose(); } catch { }
+                selectionTimer = null;
                 linkCache?.Dispose();   // writes pending link changes
                 web?.Dispose();
+
+                if (reason != PluginCloseReason.MusicBeeClosing)
+                {
+                    // disabled in the preferences: hide the menu entries; they are shown again when the plugin is enabled
+                    try
+                    {
+                        if (toolsMenuRoot != null) toolsMenuRoot.Visible = false;
+                        if (contextMenuRoot != null) contextMenuRoot.Visible = false;
+                        if (uploadMenuItem != null) uploadMenuItem.Visible = false;
+                        if (importMenuItem != null) importMenuItem.Visible = false;
+                    }
+                    catch { }
+                    menusAdded = false;
+                    started = false;
+                }
                 PluginLog.Info(ProjectInfo.Name + " closed (" + reason + ").");
             }
             catch (Exception ex)
@@ -204,6 +306,7 @@ namespace MusicBeePlugin
         {
             try
             {
+                DiagnosticsRecorder.Note("Uninstall called on plugin object #" + instanceId);
                 if (!string.IsNullOrEmpty(dataFolder) && Directory.Exists(dataFolder))
                     Directory.Delete(dataFolder, true);
             }
@@ -214,8 +317,14 @@ namespace MusicBeePlugin
         {
             try
             {
+                bool startup = type == NotificationType.PluginStartup;
+                if (startup) DiagnosticsRecorder.Note("PluginStartup received on plugin object #" + instanceId + ThreadInfo());
+
+                // MusicBee sends notifications to enabled plugins only
+                if (!EnsureStarted(startup ? "startup notification" : "first notification: " + type)) return;
+                AddMenusOnce();
                 HandleNotification(sourceFileUrl, type);
-                if (type == NotificationType.PluginStartup) PluginLog.Info("Startup notification handled.");
+                if (startup) PluginLog.Info("Startup notification handled.");
             }
             catch (Exception ex)
             {
@@ -225,7 +334,7 @@ namespace MusicBeePlugin
 
         private void HandleNotification(string sourceFileUrl, NotificationType type)
         {
-            if (settings == null || library == null) return;   // not initialised
+            if (settings == null || library == null) return;   // not started
 
             switch (type)
             {
@@ -252,10 +361,12 @@ namespace MusicBeePlugin
         }
 
         // The presence of this method tells MusicBee that the plugin has a dockable panel.
+        // The panel can be created before the startup notification; it shows the links once the plugin has started.
         public int OnDockablePanelCreated(Control panel)
         {
             try
             {
+                DiagnosticsRecorder.Note("OnDockablePanelCreated called on plugin object #" + instanceId + ThreadInfo());
                 float scale = 1f;
                 try
                 {
@@ -284,10 +395,45 @@ namespace MusicBeePlugin
 
         // ---------- settings and menus ----------
 
+        // Menu entries are added on MusicBee's UI thread, once per start.
+        private void AddMenusOnce()
+        {
+            if (menusAdded) return;
+            menusAdded = true;
+
+            Control main = null;
+            try
+            {
+                IntPtr handle = mbApi.MB_GetWindowHandle();
+                if (handle != IntPtr.Zero) main = Control.FromHandle(handle);
+            }
+            catch { }
+
+            if (main != null && main.IsHandleCreated && main.InvokeRequired)
+            {
+                try
+                {
+                    main.BeginInvoke(new Action(AddMenuItems));
+                    return;
+                }
+                catch { }
+            }
+            AddMenuItems();
+        }
+
         private void AddMenuItems()
         {
             try
             {
+                if (toolsMenuRoot != null || contextMenuRoot != null || uploadMenuItem != null)
+                {
+                    // enabled again after being disabled: show the existing entries
+                    if (toolsMenuRoot != null) toolsMenuRoot.Visible = true;
+                    UpdateMenuVisibility();
+                    DiagnosticsRecorder.Note("Menu entries shown again.");
+                    return;
+                }
+
                 // Tools → MusicBrainz Links → Settings / Analyze tracks / Show log
                 var toolsRoot = mbApi.MB_AddMenuItem("mnuTools/" + ProjectInfo.Name, null, (o, e) => { }) as ToolStripMenuItem;
                 if (toolsRoot != null)
@@ -296,6 +442,7 @@ namespace MusicBeePlugin
                     toolsRoot.DropDownItems.Add(new ToolStripMenuItem("Analyze tracks …", null,
                         (o, e) => RunAnalysisFlow(MainWindow(), AnalysisScope.Library, true)));
                     toolsRoot.DropDownItems.Add(new ToolStripMenuItem("Show log …", null, (o, e) => LogViewer.ShowLog(MainWindow())));
+                    toolsMenuRoot = toolsRoot;
                 }
                 else
                 {
@@ -317,16 +464,19 @@ namespace MusicBeePlugin
                         (o, e) => StartRatingJob(true, library.GetSelectedFiles(), false, "manual"));
                 }
                 UpdateMenuVisibility();
+                DiagnosticsRecorder.Note("Menu entries added" + ThreadInfo() + ".");
             }
             catch (Exception ex)
             {
                 PluginLog.Error("Could not add menu items: " + ex.Message);
+                DiagnosticsRecorder.Note("Could not add menu items: " + ex);
             }
         }
 
         private void UpdateMenuVisibility()
         {
             PluginSettings s = Settings;
+            if (s == null) return;
             if (contextMenuRoot != null)
                 contextMenuRoot.Visible = (s.LinksEnabled && s.ContextMenuLinks) || s.GenresEnabled || s.GenreSubmitEnabled || s.RatingsEnabled;
             if (uploadMenuItem != null) uploadMenuItem.Visible = s.RatingsEnabled;
@@ -619,7 +769,11 @@ namespace MusicBeePlugin
         {
             if (selectionTimer != null) return;
             selectionTimer = new System.Windows.Forms.Timer { Interval = 1000 };
-            selectionTimer.Tick += (o, e) => CheckSelection();
+            selectionTimer.Tick += (o, e) =>
+            {
+                try { CheckSelection(); }
+                catch (Exception ex) { PluginLog.Error("Links for the selected album: " + ex.Message); }
+            };
             selectionTimer.Start();
         }
 
@@ -627,6 +781,7 @@ namespace MusicBeePlugin
         {
             LinkPanel panel = linkPanel;
             if (panel == null || panel.IsDisposed || !panel.Visible) return;
+            if (!started || library == null || linkService == null) return;   // the plugin has not started yet
 
             string[] files = library.GetSelectedFiles();
             string first = files.Length > 0 ? files[0] : null;

@@ -3,7 +3,7 @@
 > [!NOTE]
 > **This code was written by an AI.** The entire source code of this plugin, including the build workflow, was created with Claude, an AI model by Anthropic. The code is compiled automatically on GitHub, but there are no automated tests. Please back up your MusicBee library before importing ratings for many tracks at once.
 
-**Current version: 0.12.3** · Changes: see [CHANGELOG.md](CHANGELOG.md)
+**Current version: 0.12.4** · Changes: see [CHANGELOG.md](CHANGELOG.md)
 
 [![Build](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml/badge.svg)](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml)
 
@@ -235,6 +235,7 @@ All files are in the `MbLinks` subfolder of MusicBee's data folder.
 | List of MusicBrainz genres (for submitting genres) | `MbLinks\genres.txt` | updated according to the setting |
 | Login (refresh token, client credentials, user name) | `MbLinks\auth.dat`, encrypted with Windows DPAPI, readable only by your own Windows account | you log out |
 | Log file | `MbLinks\logs\mblinks-YYYY-MM.log` | permanently (one file per month) |
+| Diagnostics and error reports (see Troubleshooting) | `MbLinks\diagnostics.txt`, `MbLinks\startup-error.txt` | replaced when larger than 2 MB, or by the next error report |
 | Ratings | no copy of their own; only in memory, which values have already been submitted in this session | MusicBee is closed |
 
 Switching services on or off or changing the Wikipedia language needs no new MusicBrainz requests; a different Wikipedia language only causes one Wikidata request per album when it is shown.
@@ -272,7 +273,14 @@ The log can be viewed inside MusicBee via "Show log …" (settings window or Too
 
 ## Troubleshooting
 
-If MusicBee reports "Unable to initialise plugin" or another error from the plugin, the plugin writes a full error report to `MbLinks\startup-error.txt` in MusicBee's data folder (for a normal installation `%AppData%\MusicBee\MbLinks\startup-error.txt`). If that folder is not known yet, the report goes to the Windows temp folder (`%TEMP%\startup-error.txt`). MusicBee's error dialog already shows the error and the first code locations. For a bug report, please attach the report file and the current log file from `MbLinks\logs`.
+If MusicBee reports "Unable to initialise plugin" or another error from the plugin, two files in MusicBee's data folder help to find the cause (for a normal installation `%AppData%\MusicBee\MbLinks\`, for the Microsoft Store version `%LocalAppData%\Packages\50072StevenMayall.MusicBee_kcr266et74avj\LocalCache\Roaming\MusicBee\MbLinks\`):
+
+- `diagnostics.txt` records which calls MusicBee makes to the plugin (loading, start, panel, settings, closing) and every exception thrown in MusicBee during the first 15 minutes after the plugin is loaded or initialised, also exceptions inside MusicBee itself, each with the full call stack. It also names the MusicBee version and API revision. Paths are shortened like in the log. The file is replaced when it grows beyond 2 MB.
+- `startup-error.txt` is written when one of the plugin's own entry points fails, with the full stack trace. If the data folder is not known yet, it goes to the Windows temp folder (`%TEMP%\startup-error.txt`).
+
+For a bug report, please attach both files and the current log file from `MbLinks\logs`.
+
+MusicBee calls the plugin's `Initialise` also for disabled plugins, to list them in the preferences. The plugin therefore starts working (menus, link fetching, panel content) only when MusicBee sends the startup notification, which it sends to enabled plugins only. A disabled plugin adds no menu entries.
 
 ## Known limitations
 
@@ -296,7 +304,7 @@ If MusicBee reports "Unable to initialise plugin" or another error from the plug
 | `src/MbLinks/Plugin.cs` | entry point for MusicBee: notifications, menus, background jobs |
 | `src/MbLinks/ProjectInfo.cs` | name, repository address, version, User-Agent |
 | `src/MbLinks/MusicBeeInterface.cs` | MusicBee API (from the official MusicBee API package, see above) |
-| `src/MbLinks/Core/` | settings, log, access to MusicBee's library, reading MusicBrainz IDs from files, analysis planning |
+| `src/MbLinks/Core/` | settings, log, diagnostics, access to MusicBee's library, reading MusicBrainz IDs from files, analysis planning |
 | `src/MbLinks/Links/` | list of services, link store, link lookup, favicons |
 | `src/MbLinks/Net/` | web access with the MusicBrainz request limit, JSON helpers |
 | `src/MbLinks/MusicBrainz/` | OAuth2 login |
