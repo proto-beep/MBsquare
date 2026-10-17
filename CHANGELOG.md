@@ -7,6 +7,23 @@ The code of all versions was written with Claude, an AI model by Anthropic.
 
 ## [Unreleased]
 
+## [0.12.3] – 2026-10-17
+
+### Added
+
+- Error report for failures in the calls from MusicBee (start, panel, notifications, settings, closing): the full report with stack trace, MusicBee API revision, .NET and Windows version goes to `MbLinks\startup-error.txt` (or to the Windows temp folder if the data folder is not known yet). If starting fails, MusicBee's error dialog shows the error type and the first code locations.
+- `mb_MbLinks.pdb` is part of every build, so error reports contain line numbers.
+- The log records the MusicBee API revision at start, and when the startup notification was handled and the panel was created.
+- README section "Troubleshooting".
+
+### Changed
+
+- Errors in notifications, panel creation, the settings window and when closing are logged and reported instead of being passed on to MusicBee.
+
+### Known issues
+
+- Version 0.12.2 could not be enabled: MusicBee reported "Unable to initialise plugin" with a NullReferenceException. The cause is not found yet; this version is meant to locate it.
+
 ## [0.12.2] – 2026-10-17
 
 ### Added

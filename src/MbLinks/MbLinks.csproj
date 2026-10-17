@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!-- The only place where the version number is maintained (Semantic Versioning). The plugin reads it at runtime. -->
-    <Version>0.12.2</Version>
+    <Version>0.12.3</Version>
 
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
@@ -17,6 +17,9 @@
     <Description>MusicBee plugin: links to MusicBrainz and other services, rating sync with MusicBrainz</Description>
     <!-- copies TagLibSharp.dll next to mb_MbLinks.dll in the output folder -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <!-- symbol file (mb_MbLinks.pdb) next to the DLL: error reports then contain line numbers -->
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
 
     <!-- Optional: enter the MusicBee Plugins folder to copy the plugin there after every build
          (MusicBee must be closed). Example:
@@ -41,7 +44,7 @@
   </ItemGroup>
 
   <Target Name="CopyToMusicBee" AfterTargets="Build" Condition="'$(MusicBeePluginsDir)' != '' And Exists('$(MusicBeePluginsDir)')">
-    <Copy SourceFiles="$(TargetPath);$(OutDir)TagLibSharp.dll" DestinationFolder="$(MusicBeePluginsDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+    <Copy SourceFiles="$(TargetPath);$(OutDir)mb_MbLinks.pdb;$(OutDir)TagLibSharp.dll" DestinationFolder="$(MusicBeePluginsDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
   </Target>
 
 </Project>

@@ -2,7 +2,7 @@
 # Note: this workflow was written with Claude, an AI model by Anthropic. See README.md.
 #
 # Builds the plugin on a Windows machine provided by GitHub, on every push and pull request.
-#  - The result (mb_MbLinks.dll, TagLibSharp.dll, README, CHANGELOG, notices) can be downloaded
+#  - The result (mb_MbLinks.dll, mb_MbLinks.pdb, TagLibSharp.dll, README, CHANGELOG, notices) can be downloaded
 #    from the run page under "Artifacts".
 #  - Pushing a tag such as v0.12.0 additionally creates a GitHub release with a ZIP file and the
 #    matching section of CHANGELOG.md as release notes.
@@ -83,7 +83,7 @@ jobs:
           $version = '${{ steps.version.outputs.version }}'
           $output = "$env:PROJECT_DIR/bin/Release/net48"
           New-Item -ItemType Directory -Force -Path 'package' | Out-Null
-          Copy-Item "$output/mb_MbLinks.dll", "$output/TagLibSharp.dll" -Destination 'package'
+          Copy-Item "$output/mb_MbLinks.dll", "$output/mb_MbLinks.pdb", "$output/TagLibSharp.dll" -Destination 'package'
           Copy-Item 'README.md', 'CHANGELOG.md', 'THIRD-PARTY-NOTICES.md' -Destination 'package'
           Compress-Archive -Path 'package/*' -DestinationPath "MbLinks-$version.zip" -Force
           Get-ChildItem 'package' | Format-Table Name, Length

@@ -85,6 +85,21 @@ namespace MusicBeePlugin
 
         public PluginInfo Initialise(IntPtr apiInterfacePtr)
         {
+            string storagePath = null;
+            try
+            {
+                return InitialiseCore(apiInterfacePtr, ref storagePath);
+            }
+            catch (Exception ex)
+            {
+                // MusicBee shows the message in its error dialog; the full report goes to MbLinks\startup-error.txt
+                throw new InvalidOperationException(
+                    StartupDiagnostics.Report("Initialise", ex, storagePath, mbApi.ApiRevision, mbApi.InterfaceVersion), ex);
+            }
+        }
+
+        private PluginInfo InitialiseCore(IntPtr apiInterfacePtr, ref string storagePath)
+        {
             mbApi = new MusicBeeApiInterface();
             mbApi.Initialise(apiInterfacePtr);
 
@@ -103,7 +118,7 @@ namespace MusicBeePlugin
             about.ReceiveNotifications = ReceiveNotificationFlags.PlayerEvents | ReceiveNotificationFlags.TagEvents;
             about.ConfigurationPanelHeight = 0;             // 0 = own settings window via Configure()
 
-            string storagePath = mbApi.Setting_GetPersistentStoragePath();
+            storagePath = mbApi.Setting_GetPersistentStoragePath();
             AssemblyLoader.Register(storagePath);
 
             dataFolder = Path.Combine(storagePath, "MbLinks");
@@ -126,8 +141,20 @@ namespace MusicBeePlugin
             genreSubmitService = new GenreSubmitService(web, auth, library, dataFolder);
 
             AddMenuItems();
-            PluginLog.Info(ProjectInfo.Name + " " + ProjectInfo.Version + " started.");
+            PluginLog.Info(ProjectInfo.Name + " " + ProjectInfo.Version + " started (MusicBee API revision " + mbApi.ApiRevision +
+                           ", interface version " + mbApi.InterfaceVersion + ", .NET " + Environment.Version + ").");
             return about;
+        }
+
+        /// <summary>Errors in calls from MusicBee are logged and written to the error report, never passed on to MusicBee.</summary>
+        private void ReportError(string stage, Exception ex)
+        {
+            try
+            {
+                string storage = string.IsNullOrEmpty(dataFolder) ? null : Path.GetDirectoryName(dataFolder);
+                StartupDiagnostics.Report(stage, ex, storage, mbApi.ApiRevision, mbApi.InterfaceVersion);
+            }
+            catch { }
         }
 
         // ---------- MusicBee interface ----------
@@ -135,7 +162,14 @@ namespace MusicBeePlugin
         // click on "Configure" in MusicBee's plugin preferences
         public bool Configure(IntPtr panelHandle)
         {
-            ShowSettings();
+            try
+            {
+                ShowSettings();
+            }
+            catch (Exception ex)
+            {
+                ReportError("Configure", ex);
+            }
             return true;
         }
 
@@ -146,17 +180,24 @@ namespace MusicBeePlugin
 
         public void Close(PluginCloseReason reason)
         {
-            shutdownCts.Cancel();
-            lock (sync)
+            try
             {
-                linksCts?.Cancel();
-                autoUploadTimer?.Dispose();
-                statusTimer?.Dispose();
+                shutdownCts?.Cancel();
+                lock (sync)
+                {
+                    linksCts?.Cancel();
+                    autoUploadTimer?.Dispose();
+                    statusTimer?.Dispose();
+                }
+                try { selectionTimer?.Dispose(); } catch { }
+                linkCache?.Dispose();   // writes pending link changes
+                web?.Dispose();
+                PluginLog.Info(ProjectInfo.Name + " closed (" + reason + ").");
             }
-            try { selectionTimer?.Dispose(); } catch { }
-            linkCache?.Dispose();   // writes pending link changes
-            web?.Dispose();
-            PluginLog.Info(ProjectInfo.Name + " closed (" + reason + ").");
+            catch (Exception ex)
+            {
+                ReportError("Close", ex);
+            }
         }
 
         public void Uninstall()
@@ -171,6 +212,21 @@ namespace MusicBeePlugin
 
         public void ReceiveNotification(string sourceFileUrl, NotificationType type)
         {
+            try
+            {
+                HandleNotification(sourceFileUrl, type);
+                if (type == NotificationType.PluginStartup) PluginLog.Info("Startup notification handled.");
+            }
+            catch (Exception ex)
+            {
+                ReportError("ReceiveNotification (" + type + ")", ex);
+            }
+        }
+
+        private void HandleNotification(string sourceFileUrl, NotificationType type)
+        {
+            if (settings == null || library == null) return;   // not initialised
+
             switch (type)
             {
                 case NotificationType.PluginStartup:
@@ -198,19 +254,32 @@ namespace MusicBeePlugin
         // The presence of this method tells MusicBee that the plugin has a dockable panel.
         public int OnDockablePanelCreated(Control panel)
         {
-            float scale;
-            using (Graphics g = panel.CreateGraphics())
-                scale = g.DpiY / 96f;
+            try
+            {
+                float scale = 1f;
+                try
+                {
+                    using (Graphics g = panel.CreateGraphics())
+                        scale = g.DpiY / 96f;
+                }
+                catch { }
 
-            PluginSettings s = Settings;
-            var lp = new LinkPanel(scale, s.IconSize, s.PanelContent, bitmaps, OpenUrl) { Dock = DockStyle.Fill };
-            lp.HandleCreated += (o, e) => lp.SetPlaying(Volatile.Read(ref currentLinks));
-            panel.Controls.Add(lp);
-            if (lp.IsHandleCreated) lp.SetPlaying(Volatile.Read(ref currentLinks));
+                PluginSettings s = Settings ?? PluginSettings.Load(dataFolder ?? Path.GetTempPath());
+                var lp = new LinkPanel(scale, s.IconSize, s.PanelContent, bitmaps, OpenUrl) { Dock = DockStyle.Fill };
+                lp.HandleCreated += (o, e) => lp.SetPlaying(Volatile.Read(ref currentLinks));
+                panel.Controls.Add(lp);
+                if (lp.IsHandleCreated) lp.SetPlaying(Volatile.Read(ref currentLinks));
 
-            linkPanel = lp;
-            if (lp.ShowsSelected) StartSelectionTracking();
-            return lp.PreferredPanelHeight;
+                linkPanel = lp;
+                if (lp.ShowsSelected) StartSelectionTracking();
+                PluginLog.Info("Panel created.");
+                return lp.PreferredPanelHeight;
+            }
+            catch (Exception ex)
+            {
+                ReportError("OnDockablePanelCreated", ex);
+                return 0;
+            }
         }
 
         // ---------- settings and menus ----------

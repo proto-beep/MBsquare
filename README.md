@@ -3,7 +3,7 @@
 > [!NOTE]
 > **This code was written by an AI.** The entire source code of this plugin, including the build workflow, was created with Claude, an AI model by Anthropic. The code is compiled automatically on GitHub, but there are no automated tests. Please back up your MusicBee library before importing ratings for many tracks at once.
 
-**Current version: 0.12.2** · Changes: see [CHANGELOG.md](CHANGELOG.md)
+**Current version: 0.12.3** · Changes: see [CHANGELOG.md](CHANGELOG.md)
 
 [![Build](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml/badge.svg)](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml)
 
@@ -161,7 +161,7 @@ Requires MusicBee 3.5 or newer.
 
 1. Download the ZIP file of the desired release from the GitHub releases page. The latest development build is available on the Actions page: open the newest successful run of "Build" and download the file under "Artifacts".
 2. Close MusicBee.
-3. Copy `mb_MbLinks.dll` and `TagLibSharp.dll` into MusicBee's Plugins folder. For a normal installation this is usually `C:\Program Files (x86)\MusicBee\Plugins`, for the Microsoft Store version `C:\Users\<name>\AppData\Local\Packages\50072StevenMayall.MusicBee_kcr266et74avj\LocalCache\Roaming\MusicBee\Plugins`.
+3. Copy `mb_MbLinks.dll`, `mb_MbLinks.pdb` and `TagLibSharp.dll` into MusicBee's Plugins folder. The `.pdb` file is optional; with it, error reports contain line numbers. For a normal installation this is usually `C:\Program Files (x86)\MusicBee\Plugins`, for the Microsoft Store version `C:\Users\<name>\AppData\Local\Packages\50072StevenMayall.MusicBee_kcr266et74avj\LocalCache\Roaming\MusicBee\Plugins`.
 4. Start MusicBee and check under Preferences → Plugins that "MusicBrainz Links" is enabled.
 5. Place the panel where you want it via MusicBee's panel layout (Arrange Panels).
 
@@ -270,6 +270,10 @@ The log can be viewed inside MusicBee via "Show log …" (settings window or Too
 | websites of the services | loading the favicon once |
 | icons.duckduckgo.com | fallback source for favicons |
 
+## Troubleshooting
+
+If MusicBee reports "Unable to initialise plugin" or another error from the plugin, the plugin writes a full error report to `MbLinks\startup-error.txt` in MusicBee's data folder (for a normal installation `%AppData%\MusicBee\MbLinks\startup-error.txt`). If that folder is not known yet, the report goes to the Windows temp folder (`%TEMP%\startup-error.txt`). MusicBee's error dialog already shows the error and the first code locations. For a bug report, please attach the report file and the current log file from `MbLinks\logs`.
+
 ## Known limitations
 
 - The MusicBee API does not provide MusicBrainz fields. The plugin therefore reads the IDs directly from the files with TagLib#. Supported are ID3v2, Vorbis comments (FLAC, Ogg, Opus), MP4/M4A, APEv2 and WMA in Picard's naming convention, which other taggers follow as well.
@@ -313,7 +317,7 @@ The project follows [Semantic Versioning](https://semver.org/). The version numb
 2. In `CHANGELOG.md`, move the entries under "Unreleased" into a new section with version number and date.
 3. Update the version at the top of this README.
 4. Commit and push. The automatic build checks steps 1 to 3 and fails if one is missing.
-5. Create the tag and push it, e.g. `git tag v0.12.2` and `git push origin v0.12.2`. The workflow then builds the plugin and creates the GitHub release with the ZIP file and the CHANGELOG section as release notes.
+5. Create the tag and push it, e.g. `git tag v0.12.3` and `git push origin v0.12.3`. The workflow then builds the plugin and creates the GitHub release with the ZIP file and the CHANGELOG section as release notes.
 
 ## License
 
