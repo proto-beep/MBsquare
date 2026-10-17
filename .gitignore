@@ -13,4 +13,6 @@ obj/
 
 # created by the build workflow
 package/
+test-plugins/
+tools/MbTestPlugins/out/
 release-notes.md

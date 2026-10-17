@@ -280,6 +280,8 @@ If MusicBee reports "Unable to initialise plugin" or another error from the plug
 
 For a bug report, please attach both files and the current log file from `MbLinks\logs`.
 
+If MusicBee cannot enable the plugin, the test plugins help to narrow down the cause. They are built automatically and can be downloaded from the run page of the latest build under "Artifacts" as `MbTestPlugins`. Each of them differs from MusicBee's sample plugin in one point: A is like the sample, B adds a dockable panel, C uses the plugin information of MusicBrainz Links without a panel, D uses the plugin information including the panel, E has no generated assembly information. Copy `mb_MbTestA.dll` … `mb_MbTestE.dll` into MusicBee's Plugins folder, start MusicBee, try to enable each of them, and note which ones fail. Each test plugin writes the calls it receives to `MbLinks\diagnostics.txt`. Remove them afterwards.
+
 MusicBee calls the plugin's `Initialise` also for disabled plugins, to list them in the preferences. The plugin therefore starts working (menus, link fetching, panel content) only when MusicBee sends the startup notification, which it sends to enabled plugins only. A disabled plugin adds no menu entries.
 
 ## Known limitations
@@ -311,6 +313,7 @@ MusicBee calls the plugin's `Initialise` also for disabled plugins, to list them
 | `src/MbLinks/Genres/` | genre import from MusicBrainz, submitting your own genres |
 | `src/MbLinks/Ratings/` | rating sync |
 | `src/MbLinks/UI/` | settings window, dialogs, panel, icons, log viewer |
+| `tools/MbTestPlugins/` | five small test plugins that do nothing, for finding out why MusicBee cannot enable a plugin (see Troubleshooting) |
 | `.github/workflows/build.yml` | automatic build and releases on GitHub |
 
 All `.cs` files below `src/MbLinks` are compiled automatically; new files only need to be placed in the right folder.

@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Test plugins for finding out why MusicBee cannot enable "MusicBrainz Links". Not part of the plugin.
+    Code written with Claude (an AI model by Anthropic), see README.md.
+    Build one variant at a time: dotnet build -c Release -p:Variant=A -p:IntermediateOutputPath=obj/A/   (A … E)
+  -->
+
+  <PropertyGroup>
+    <Variant Condition="'$(Variant)' == ''">A</Variant>
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <AssemblyName>mb_MbTest$(Variant)</AssemblyName>
+    <RootNamespace>MusicBeePlugin</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DefineConstants>$(DefineConstants);VARIANT_$(Variant)</DefineConstants>
+    <Version>1.0.1</Version>
+  </PropertyGroup>
+
+  <!-- Variant E: without the assembly information that the .NET SDK generates (see TestPlugin.cs) -->
+  <PropertyGroup Condition="'$(Variant)' == 'E'">
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\src\MbLinks\MusicBeeInterface.cs" Link="MusicBeeInterface.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

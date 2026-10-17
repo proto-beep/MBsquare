@@ -6,6 +6,8 @@
 #    from the run page under "Artifacts".
 #  - Pushing a tag such as v0.12.0 additionally creates a GitHub release with a ZIP file and the
 #    matching section of CHANGELOG.md as release notes.
+#  - The test plugins in tools/MbTestPlugins (for diagnosing problems with enabling the plugin) are built as
+#    well and can be downloaded under "Artifacts" as MbTestPlugins.
 #  - The build fails with a clear message if src/MbLinks/MusicBeeInterface.cs is missing, or if the version
 #    in src/MbLinks/MbLinks.csproj is not mentioned in README.md and CHANGELOG.md (or does not match the tag).
 
@@ -93,6 +95,24 @@ jobs:
         with:
           name: MbLinks-${{ steps.version.outputs.version }}
           path: package
+
+      - name: Build the test plugins
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path 'test-plugins' | Out-Null
+          foreach ($variant in 'A', 'B', 'C', 'D', 'E') {
+            dotnet build 'tools/MbTestPlugins/MbTestPlugins.csproj' --configuration Release --nologo `
+              "-p:Variant=$variant" "-p:IntermediateOutputPath=obj/$variant/" -o "tools/MbTestPlugins/out/$variant"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            Copy-Item "tools/MbTestPlugins/out/$variant/mb_MbTest$variant.dll" -Destination 'test-plugins'
+          }
+          Get-ChildItem 'test-plugins' | Format-Table Name, Length
+
+      - name: Upload the test plugins
+        uses: actions/upload-artifact@v7
+        with:
+          name: MbTestPlugins
+          path: test-plugins
 
       - name: Release notes from CHANGELOG
         if: github.ref_type == 'tag'

@@ -7,6 +7,10 @@ The code of all versions was written with Claude, an AI model by Anthropic.
 
 ## [Unreleased]
 
+### Added
+
+- Test plugins in `tools/MbTestPlugins` (variants A to E), built automatically and offered as the artifact `MbTestPlugins`. Each differs from MusicBee's sample plugin in one point (panel, plugin information, name, assembly information), to find out why MusicBee cannot enable MusicBrainz Links. They are not part of the plugin.
+
 ## [0.12.4] – 2026-10-17
 
 ### Added
