@@ -179,7 +179,8 @@ namespace MusicBeePlugin
                     QueueUpcoming();
                     break;
 
-                case NotificationType.NowPlayingListChanged:
+                case NotificationType.PlayingTracksChanged:
+                case NotificationType.PlayingTracksQueueChanged:
                     QueueUpcoming();
                     break;
 

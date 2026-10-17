@@ -7,6 +7,21 @@ The code of all versions was written with Claude, an AI model by Anthropic.
 
 ## [Unreleased]
 
+## [0.12.2] – 2026-10-17
+
+### Added
+
+- `src/MbLinks/MusicBeeInterface.cs` from the official MusicBee API package (interface version 43, API revision 57), so the plugin can be built automatically. The plugin requires MusicBee 3.5 or newer.
+
+### Changed
+
+- The genre field lists custom tags 1 to 20, as the current MusicBee API offers them.
+- Changes to the playing list are recognized via `PlayingTracksChanged` and `PlayingTracksQueueChanged` instead of the obsolete `NowPlayingListChanged`.
+
+### Fixed
+
+- `Library_QueryFilesEx`, `Library_GetFileTags` and `Playlist_QueryFilesEx` are called with `out` again, as the current MusicBee API expects. The change to `ref` in 0.5.0 was based on an older version of the API and would not have compiled.
+
 ## [0.12.1] – 2026-10-17
 
 ### Added

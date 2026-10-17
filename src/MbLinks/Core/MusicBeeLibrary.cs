@@ -46,8 +46,7 @@ namespace MusicBeePlugin
         {
             try
             {
-                string[] results = null;
-                if (api.Library_GetFileTags(file, RatingFields, ref results) && results != null && results.Length >= 3)
+                if (api.Library_GetFileTags(file, RatingFields, out string[] results) && results != null && results.Length >= 3)
                     return results;
             }
             catch { }
@@ -60,8 +59,7 @@ namespace MusicBeePlugin
         {
             try
             {
-                string[] files = null;
-                return api.Library_QueryFilesEx(query, ref files) && files != null ? files : new string[0];
+                return api.Library_QueryFilesEx(query, out string[] files) && files != null ? files : new string[0];
             }
             catch
             {
@@ -116,8 +114,7 @@ namespace MusicBeePlugin
         {
             try
             {
-                string[] files = null;
-                return api.Playlist_QueryFilesEx(playlistUrl, ref files) && files != null ? files : new string[0];
+                return api.Playlist_QueryFilesEx(playlistUrl, out string[] files) && files != null ? files : new string[0];
             }
             catch
             {

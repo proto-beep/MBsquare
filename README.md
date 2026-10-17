@@ -3,7 +3,7 @@
 > [!NOTE]
 > **This code was written by an AI.** The entire source code of this plugin, including the build workflow, was created with Claude, an AI model by Anthropic. The code is compiled automatically on GitHub, but there are no automated tests. Please back up your MusicBee library before importing ratings for many tracks at once.
 
-**Current version: 0.12.1** · Changes: see [CHANGELOG.md](CHANGELOG.md)
+**Current version: 0.12.2** · Changes: see [CHANGELOG.md](CHANGELOG.md)
 
 [![Build](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml/badge.svg)](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml)
 
@@ -155,6 +155,8 @@ Before the requests, the plugin reads the MusicBrainz IDs from one file per albu
 
 ## Installation
 
+Requires MusicBee 3.5 or newer.
+
 ### Ready-made version
 
 1. Download the ZIP file of the desired release from the GitHub releases page. The latest development build is available on the Actions page: open the newest successful run of "Build" and download the file under "Artifacts".
@@ -272,7 +274,7 @@ The log can be viewed inside MusicBee via "Show log …" (settings window or Too
 
 - The MusicBee API does not provide MusicBrainz fields. The plugin therefore reads the IDs directly from the files with TagLib#. Supported are ID3v2, Vorbis comments (FLAC, Ogg, Opus), MP4/M4A, APEv2 and WMA in Picard's naming convention, which other taggers follow as well.
 - The MusicBee API does not report the user interface language. The plugin looks for it in MusicBee's settings file and otherwise uses the Windows language; if in doubt, enter the language in the settings.
-- MusicBee does not report selection changes to plugins. The panel therefore checks the selection once per second.
+- The panel checks the selection once per second. The notification for selection changes that newer MusicBee versions offer is not used yet.
 - For an analysis, tracks are grouped into albums by folder and album name. Different releases with the same album name in the same folder count as one album; their other releases are fetched when played.
 - Links are album-level only. Genius pages for individual songs are usually attached to works in MusicBrainz and are not shown yet.
 - Genres from Rate Your Music are not read: Rate Your Music has no public API and its terms of service forbid automated access.
@@ -311,7 +313,7 @@ The project follows [Semantic Versioning](https://semver.org/). The version numb
 2. In `CHANGELOG.md`, move the entries under "Unreleased" into a new section with version number and date.
 3. Update the version at the top of this README.
 4. Commit and push. The automatic build checks steps 1 to 3 and fails if one is missing.
-5. Create the tag and push it, e.g. `git tag v0.12.1` and `git push origin v0.12.1`. The workflow then builds the plugin and creates the GitHub release with the ZIP file and the CHANGELOG section as release notes.
+5. Create the tag and push it, e.g. `git tag v0.12.2` and `git push origin v0.12.2`. The workflow then builds the plugin and creates the GitHub release with the ZIP file and the CHANGELOG section as release notes.
 
 ## License
 

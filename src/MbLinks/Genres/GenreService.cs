@@ -37,10 +37,10 @@ namespace MusicBeePlugin
             return Plugin.MetaDataType.Genre;
         }
 
-        /// <summary>"Custom1" … "Custom16", as far as the MusicBee API in use knows them.</summary>
+        /// <summary>"Custom1" … "Custom20", as far as the MusicBee API in use knows them.</summary>
         public static IEnumerable<string> CustomKeys()
         {
-            for (int i = 1; i <= 16; i++)
+            for (int i = 1; i <= 20; i++)
             {
                 string key = "Custom" + i;
                 if (Enum.IsDefined(typeof(Plugin.MetaDataType), key)) yield return key;
