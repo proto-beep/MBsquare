@@ -1,0 +1,119 @@
+# MusicBrainz Links – MusicBee plugin
+# Note: this workflow was written with Claude, an AI model by Anthropic. See README.md.
+#
+# Builds the plugin on a Windows machine provided by GitHub, on every push and pull request.
+#  - The result (mb_MbLinks.dll, TagLibSharp.dll, README, CHANGELOG, notices) can be downloaded
+#    from the run page under "Artifacts".
+#  - Pushing a tag such as v0.12.0 additionally creates a GitHub release with a ZIP file and the
+#    matching section of CHANGELOG.md as release notes.
+#  - The build fails with a clear message if src/MbLinks/MusicBeeInterface.cs is missing, or if the version
+#    in src/MbLinks/MbLinks.csproj is not mentioned in README.md and CHANGELOG.md (or does not match the tag).
+
+name: Build
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # needed to create releases for tags
+
+env:
+  PROJECT_DIR: src/MbLinks
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v6
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Check that MusicBeeInterface.cs is present
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:PROJECT_DIR/MusicBeeInterface.cs")) {
+            Write-Output "::error file=$env:PROJECT_DIR/MusicBeeInterface.cs::MusicBeeInterface.cs is missing. Add the file from the official MusicBee API package to the folder $env:PROJECT_DIR (see README, 'Building from source')."
+            exit 1
+          }
+
+      - name: Check version, README and CHANGELOG
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Select-Xml -Path "$env:PROJECT_DIR/MbLinks.csproj" -XPath '//Version').Node.InnerText.Trim()
+          if (-not $version) {
+            Write-Output "::error file=$env:PROJECT_DIR/MbLinks.csproj::No <Version> found in MbLinks.csproj."
+            exit 1
+          }
+
+          $failed = $false
+          if (-not (Select-String -Path 'README.md' -SimpleMatch "**Current version: $version**" -Quiet)) {
+            Write-Output "::error file=README.md::README.md does not say 'Current version: $version'."
+            $failed = $true
+          }
+          if (-not (Select-String -Path 'CHANGELOG.md' -SimpleMatch "## [$version]" -Quiet)) {
+            Write-Output "::error file=CHANGELOG.md::CHANGELOG.md has no section '## [$version]'."
+            $failed = $true
+          }
+          if ($env:GITHUB_REF_TYPE -eq 'tag' -and $env:GITHUB_REF_NAME -ne "v$version") {
+            Write-Output "::error::The tag $($env:GITHUB_REF_NAME) does not match the version $version in MbLinks.csproj (expected v$version)."
+            $failed = $true
+          }
+          if ($failed) { exit 1 }
+
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Output "Building version $version"
+
+      - name: Build
+        shell: pwsh
+        run: dotnet build "$env:PROJECT_DIR/MbLinks.csproj" --configuration Release --nologo
+
+      - name: Pack
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $output = "$env:PROJECT_DIR/bin/Release/net48"
+          New-Item -ItemType Directory -Force -Path 'package' | Out-Null
+          Copy-Item "$output/mb_MbLinks.dll", "$output/TagLibSharp.dll" -Destination 'package'
+          Copy-Item 'README.md', 'CHANGELOG.md', 'THIRD-PARTY-NOTICES.md' -Destination 'package'
+          Compress-Archive -Path 'package/*' -DestinationPath "MbLinks-$version.zip" -Force
+          Get-ChildItem 'package' | Format-Table Name, Length
+
+      - name: Upload the build
+        uses: actions/upload-artifact@v7
+        with:
+          name: MbLinks-${{ steps.version.outputs.version }}
+          path: package
+
+      - name: Release notes from CHANGELOG
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $lines = Get-Content 'CHANGELOG.md'
+          $start = ($lines | Select-String -SimpleMatch "## [$version]" | Select-Object -First 1).LineNumber
+          $notes = @()
+          for ($i = $start; $i -lt $lines.Count; $i++) {
+            if ($lines[$i].StartsWith('## [')) { break }
+            $notes += $lines[$i]
+          }
+          $notes += ''
+          $notes += 'The code of this plugin was written with Claude, an AI model by Anthropic.'
+          Set-Content -Path 'release-notes.md' -Value $notes -Encoding utf8
+
+      - name: Create the GitHub release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MusicBrainz Links ${{ steps.version.outputs.version }}
+          body_path: release-notes.md
+          files: MbLinks-${{ steps.version.outputs.version }}.zip

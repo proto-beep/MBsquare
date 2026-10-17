@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MusicBrainz Links – MusicBee plugin. Code written with Claude (an AI model by Anthropic), see README.md. -->
+
+  <PropertyGroup>
+    <!-- The only place where the version number is maintained (Semantic Versioning). The plugin reads it at runtime. -->
+    <Version>0.12.1</Version>
+
+    <TargetFramework>net48</TargetFramework>
+    <OutputType>Library</OutputType>
+    <!-- MusicBee only loads DLLs whose name starts with "mb_" -->
+    <AssemblyName>mb_MbLinks</AssemblyName>
+    <RootNamespace>MusicBeePlugin</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <Product>MusicBrainz Links</Product>
+    <Description>MusicBee plugin: links to MusicBrainz and other services, rating sync with MusicBrainz</Description>
+    <!-- copies TagLibSharp.dll next to mb_MbLinks.dll in the output folder -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+
+    <!-- Optional: enter the MusicBee Plugins folder to copy the plugin there after every build
+         (MusicBee must be closed). Example:
+         <MusicBeePluginsDir>C:\Program Files (x86)\MusicBee\Plugins</MusicBeePluginsDir> -->
+    <MusicBeePluginsDir></MusicBeePluginsDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- reads the MusicBrainz IDs directly from the files (ID3, Vorbis, MP4, APE, WMA) -->
+    <PackageReference Include="TagLibSharp" Version="2.3.0" />
+    <!-- allows building without the .NET Framework 4.8 Developer Pack installed -->
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+  </ItemGroup>
+
+  <Target Name="CopyToMusicBee" AfterTargets="Build" Condition="'$(MusicBeePluginsDir)' != '' And Exists('$(MusicBeePluginsDir)')">
+    <Copy SourceFiles="$(TargetPath);$(OutDir)TagLibSharp.dll" DestinationFolder="$(MusicBeePluginsDir)" SkipUnchangedFiles="true" ContinueOnError="true" />
+  </Target>
+
+</Project>

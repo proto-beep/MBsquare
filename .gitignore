@@ -1,0 +1,16 @@
+# build output
+bin/
+obj/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+*.suo
+
+# release packages
+*.zip
+
+# created by the build workflow
+package/
+release-notes.md
