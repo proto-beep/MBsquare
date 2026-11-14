@@ -7,9 +7,33 @@ The code of all versions was written with Claude, an AI model by Anthropic.
 
 ## [Unreleased]
 
+## [0.12.5] – 2026-11-14
+
+Result of a review of the complete source code.
+
 ### Added
 
-- Test plugins in `tools/MbTestPlugins` (variants A to E), built automatically and offered as the artifact `MbTestPlugins`. Each differs from MusicBee's sample plugin in one point (panel, plugin information, name, assembly information), to find out why MusicBee cannot enable MusicBrainz Links. They are not part of the plugin.
+- A second build without the dockable panel (`MbLinks-<version>-without-panel.zip`, built with `-p:NoPanel=true`), for the case that MusicBee cannot enable the normal build. The links are then available in the context menu only.
+- `diagnostics.txt` records the call stack from which MusicBee calls `Initialise`, and calls of `SaveSettings`.
+
+### Changed
+
+- The DLL now exposes only the `Plugin` class to MusicBee: the two classes of the link store (`StoredUrl`, `AlbumLinks`) are no longer public. The lines in `links.jsonl` are written and read field by field; the file format is unchanged.
+- The DLL carries the same set of assembly attributes as a plugin built from MusicBee's sample project (title, company, copyright, trademark, culture, COM visibility, GUID), and the plugin information names an author.
+- The version in the file properties no longer contains the commit hash.
+
+### Fixed
+
+- The icons in the context menu were copied every time the menu opened and never released.
+- The settings window referred to a README section that does not exist ("Setting up ratings"); it is "Setting up the MusicBrainz login".
+
+### Removed
+
+- The test plugins in `tools/MbTestPlugins` and their build step.
+
+### Known issues
+
+- "Enable" in MusicBee's plugin preferences may still fail with "Unable to initialise plugin" (NullReferenceException). `diagnostics.txt` from 0.12.4 shows that MusicBee calls `Initialise` without an error and that no exception is thrown when "Enable" is clicked, so the cause is inside MusicBee's handling of the plugin. The changes above remove the remaining differences to MusicBee's sample plugin that MusicBee can see.
 
 ## [0.12.4] – 2026-10-17
 

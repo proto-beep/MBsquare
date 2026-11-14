@@ -11,6 +11,9 @@ namespace MusicBeePlugin
         public const string Name = "MusicBrainz Links";
         public const string ShortName = "MbLinks";
 
+        /// <summary>Shown as the author in MusicBee's plugin list.</summary>
+        public const string Author = "proto-beep (code written by Claude, an AI)";
+
         // GitHub repository of the plugin. MusicBrainz also uses it as the contact in the User-Agent;
         // whoever publishes a fork sets their own repository address here.
         public const string RepositoryUrl = "https://github.com/proto-beep/MBsquare";

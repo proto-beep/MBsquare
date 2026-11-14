@@ -4,7 +4,7 @@
 
   <PropertyGroup>
     <!-- The only place where the version number is maintained (Semantic Versioning). The plugin reads it at runtime. -->
-    <Version>0.12.4</Version>
+    <Version>0.12.5</Version>
 
     <TargetFramework>net48</TargetFramework>
     <OutputType>Library</OutputType>
@@ -14,7 +14,14 @@
     <LangVersion>latest</LangVersion>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <Product>MusicBrainz Links</Product>
+    <AssemblyTitle>MusicBrainz Links</AssemblyTitle>
+    <Company>proto-beep</Company>
+    <Copyright>Code written with Claude, an AI model by Anthropic</Copyright>
     <Description>MusicBee plugin: links to MusicBrainz and other services, rating sync with MusicBrainz</Description>
+    <!-- plain version number in the file properties, without the commit hash -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <!-- "dotnet build -p:NoPanel=true" builds the plugin without the dockable panel (see README, Troubleshooting) -->
+    <DefineConstants Condition="'$(NoPanel)' == 'true'">$(DefineConstants);NO_PANEL</DefineConstants>
     <!-- copies TagLibSharp.dll next to mb_MbLinks.dll in the output folder -->
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <!-- symbol file (mb_MbLinks.pdb) next to the DLL: error reports then contain line numbers -->

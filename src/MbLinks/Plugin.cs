@@ -131,8 +131,12 @@ namespace MusicBeePlugin
             about.PluginInfoVersion = PluginInfoVersion;
             about.Name = ProjectInfo.Name;
             about.Description = "Links to MusicBrainz and other services, optional rating sync with MusicBrainz (code written by an AI)";
-            about.Author = "";
-            about.TargetApplication = ProjectInfo.Name;   // panel header; "" = no header
+            about.Author = ProjectInfo.Author;
+#if NO_PANEL
+            about.TargetApplication = "";                   // build without the dockable panel
+#else
+            about.TargetApplication = ProjectInfo.Name;     // panel header; "" = no header
+#endif
             about.Type = PluginType.General;                // the panel is created through OnDockablePanelCreated
             about.VersionMajor = (short)version.Major;
             about.VersionMinor = (short)version.Minor;
@@ -152,6 +156,7 @@ namespace MusicBeePlugin
             string text = "Initialise called on plugin object #" + instanceId + ThreadInfo() + ": " +
                           ProjectInfo.Name + " " + ProjectInfo.Version + "; " + MusicBeeDescription();
             DiagnosticsRecorder.Note(text);
+            DiagnosticsRecorder.NoteCaller("Initialise was called from");
             PluginLog.Info(text);
             return about;
         }
@@ -257,6 +262,7 @@ namespace MusicBeePlugin
         // settings are saved in the plugin's own window
         public void SaveSettings()
         {
+            try { DiagnosticsRecorder.Note("SaveSettings called on plugin object #" + instanceId + ThreadInfo()); } catch { }
         }
 
         public void Close(PluginCloseReason reason)
@@ -360,8 +366,10 @@ namespace MusicBeePlugin
             }
         }
 
+#if !NO_PANEL
         // The presence of this method tells MusicBee that the plugin has a dockable panel.
         // The panel can be created before the startup notification; it shows the links once the plugin has started.
+        // The build "without panel" (see README, Troubleshooting) leaves this method out.
         public int OnDockablePanelCreated(Control panel)
         {
             try
@@ -392,6 +400,7 @@ namespace MusicBeePlugin
                 return 0;
             }
         }
+#endif
 
         // ---------- settings and menus ----------
 
@@ -590,7 +599,13 @@ namespace MusicBeePlugin
 
             List<ToolStripItem> old = root.DropDownItems.Cast<ToolStripItem>().ToList();
             root.DropDownItems.Clear();
-            foreach (ToolStripItem oldItem in old) oldItem.Dispose();
+            foreach (ToolStripItem oldItem in old)
+            {
+                Image image = oldItem.Image;   // a copy made for this menu entry
+                oldItem.Image = null;
+                oldItem.Dispose();
+                image?.Dispose();
+            }
             root.DropDownItems.AddRange(items.ToArray());
         }
 

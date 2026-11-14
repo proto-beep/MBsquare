@@ -3,7 +3,7 @@
 > [!NOTE]
 > **This code was written by an AI.** The entire source code of this plugin, including the build workflow, was created with Claude, an AI model by Anthropic. The code is compiled automatically on GitHub, but there are no automated tests. Please back up your MusicBee library before importing ratings for many tracks at once.
 
-**Current version: 0.12.4** · Changes: see [CHANGELOG.md](CHANGELOG.md)
+**Current version: 0.12.5** · Changes: see [CHANGELOG.md](CHANGELOG.md)
 
 [![Build](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml/badge.svg)](https://github.com/proto-beep/MBsquare/actions/workflows/build.yml)
 
@@ -161,7 +161,7 @@ Requires MusicBee 3.5 or newer.
 
 1. Download the ZIP file of the desired release from the GitHub releases page. The latest development build is available on the Actions page: open the newest successful run of "Build" and download the file under "Artifacts".
 2. Close MusicBee.
-3. Copy `mb_MbLinks.dll`, `mb_MbLinks.pdb` and `TagLibSharp.dll` into MusicBee's Plugins folder. The `.pdb` file is optional; with it, error reports contain line numbers. For a normal installation this is usually `C:\Program Files (x86)\MusicBee\Plugins`, for the Microsoft Store version `C:\Users\<name>\AppData\Local\Packages\50072StevenMayall.MusicBee_kcr266et74avj\LocalCache\Roaming\MusicBee\Plugins`.
+3. Copy `mb_MbLinks.dll`, `mb_MbLinks.pdb` and `TagLibSharp.dll` into MusicBee's Plugins folder (alternatively, keep MusicBee open and choose the ZIP file under Preferences → Plugins → "Add Plugin"). The `.pdb` file is optional; with it, error reports contain line numbers. For a normal installation this is usually `C:\Program Files (x86)\MusicBee\Plugins`, for the Microsoft Store version `C:\Users\<name>\AppData\Local\Packages\50072StevenMayall.MusicBee_kcr266et74avj\LocalCache\Roaming\MusicBee\Plugins`.
 4. Start MusicBee and check under Preferences → Plugins that "MusicBrainz Links" is enabled.
 5. Place the panel where you want it via MusicBee's panel layout (Arrange Panels).
 
@@ -280,7 +280,7 @@ If MusicBee reports "Unable to initialise plugin" or another error from the plug
 
 For a bug report, please attach both files and the current log file from `MbLinks\logs`.
 
-If MusicBee cannot enable the plugin, the test plugins help to narrow down the cause. They are built automatically and can be downloaded from the run page of the latest build under "Artifacts" as `MbTestPlugins`. Each of them differs from MusicBee's sample plugin in one point: A is like the sample, B adds a dockable panel, C uses the plugin information of MusicBrainz Links without a panel, D uses the plugin information including the panel, E has no generated assembly information. Copy `mb_MbTestA.dll` … `mb_MbTestE.dll` into MusicBee's Plugins folder, start MusicBee, try to enable each of them, and note which ones fail. Each test plugin writes the calls it receives to `MbLinks\diagnostics.txt`. Remove them afterwards.
+If MusicBee cannot enable the plugin although `diagnostics.txt` shows that `Initialise` was called without an error, try the build without the dockable panel: every release also contains `MbLinks-<version>-without-panel.zip`. It is the same plugin, but it does not register a panel with MusicBee; the links are then available in the context menu only. Close MusicBee, replace `mb_MbLinks.dll` and `mb_MbLinks.pdb` in the Plugins folder with the files from that ZIP, start MusicBee and enable the plugin. If this build can be enabled and the normal one cannot, please report it, because it shows that MusicBee stumbles over the panel.
 
 MusicBee calls the plugin's `Initialise` also for disabled plugins, to list them in the preferences. The plugin therefore starts working (menus, link fetching, panel content) only when MusicBee sends the startup notification, which it sends to enabled plugins only. A disabled plugin adds no menu entries.
 
@@ -313,7 +313,6 @@ MusicBee calls the plugin's `Initialise` also for disabled plugins, to list them
 | `src/MbLinks/Genres/` | genre import from MusicBrainz, submitting your own genres |
 | `src/MbLinks/Ratings/` | rating sync |
 | `src/MbLinks/UI/` | settings window, dialogs, panel, icons, log viewer |
-| `tools/MbTestPlugins/` | five small test plugins that do nothing, for finding out why MusicBee cannot enable a plugin (see Troubleshooting) |
 | `.github/workflows/build.yml` | automatic build and releases on GitHub |
 
 All `.cs` files below `src/MbLinks` are compiled automatically; new files only need to be placed in the right folder.

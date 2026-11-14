@@ -468,7 +468,7 @@ namespace MusicBeePlugin
             var loginFlow = new FlowLayoutPanel { FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoSize = true, Dock = DockStyle.Fill };
             loginFlow.Controls.Add(loginStatus);
             loginFlow.Controls.Add(Row(loginButton, logoutButton));
-            loginFlow.Controls.Add(NewLabel("OAuth application credentials (see \"Setting up ratings\" in the README):", 8));
+            loginFlow.Controls.Add(NewLabel("OAuth application credentials (see \"Setting up the MusicBrainz login\" in the README):", 8));
             loginFlow.Controls.Add(Row(FieldLabel("Client ID:", 80), clientIdBox));
             loginFlow.Controls.Add(Row(FieldLabel("Secret:", 80), clientSecretBox));
 
@@ -706,7 +706,7 @@ namespace MusicBeePlugin
             {
                 MessageBox.Show(this,
                     "Logging in requires an OAuth application registered with MusicBrainz. " +
-                    "See \"Setting up ratings\" in the README.",
+                    "See \"Setting up the MusicBrainz login\" in the README.",
                     ProjectInfo.Name, MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }

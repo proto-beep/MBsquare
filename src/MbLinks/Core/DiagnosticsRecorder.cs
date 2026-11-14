@@ -98,6 +98,28 @@ namespace MusicBeePlugin
             Append(Stamp() + " " + text + Environment.NewLine);
         }
 
+        /// <summary>The call stack at this point, to show how MusicBee calls the plugin.</summary>
+        public static void NoteCaller(string title)
+        {
+            try
+            {
+                var sb = new StringBuilder();
+                sb.Append(Stamp()).Append(' ').Append(title).AppendLine(":");
+                int shown = 0;
+                foreach (string raw in Environment.StackTrace.Split('\n'))
+                {
+                    string line = raw.Trim();
+                    if (line.Length == 0) continue;
+                    if (line.IndexOf("System.Environment.", StringComparison.Ordinal) >= 0) continue;
+                    if (line.IndexOf(nameof(DiagnosticsRecorder), StringComparison.Ordinal) >= 0) continue;
+                    sb.Append("      ").AppendLine(line);
+                    if (++shown == 25) break;
+                }
+                Append(sb.ToString());
+            }
+            catch { }
+        }
+
         private static void OnFirstChanceException(object sender, FirstChanceExceptionEventArgs e)
         {
             if (busy) return;   // an exception inside this handler
